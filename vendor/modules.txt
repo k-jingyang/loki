@@ -1624,6 +1624,9 @@ github.com/parquet-go/parquet-go/internal/bytealg
 github.com/parquet-go/parquet-go/internal/debug
 github.com/parquet-go/parquet-go/internal/unsafecast
 github.com/parquet-go/parquet-go/sparse
+# github.com/pawelgaczynski/giouring v0.0.0-20230826085535-69588b89acb9 => ../giouring
+## explicit; go 1.20
+github.com/pawelgaczynski/giouring
 # github.com/philhofer/fwd v1.2.0
 ## explicit; go 1.20
 github.com/philhofer/fwd
@@ -3076,3 +3079,4 @@ zombiezen.com/go/sqlite/sqlitex
 # github.com/grafana/loki/pkg/push => ./pkg/push
 # github.com/influxdata/go-syslog/v3 => github.com/leodido/go-syslog/v4 v4.2.0
 # github.com/thanos-io/objstore => github.com/grafana/objstore v0.0.0-20250728171719-b5d3b766d1b0
+# github.com/pawelgaczynski/giouring => ../giouring

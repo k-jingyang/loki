@@ -434,6 +434,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.0 // indirect
+	github.com/pawelgaczynski/giouring v0.0.0-20230826085535-69588b89acb9
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/exporter-toolkit v0.14.0 // indirect
@@ -504,3 +505,5 @@ replace github.com/grafana/loki/pkg/push => ./pkg/push
 replace github.com/influxdata/go-syslog/v3 => github.com/leodido/go-syslog/v4 v4.2.0
 
 replace github.com/thanos-io/objstore => github.com/grafana/objstore v0.0.0-20250728171719-b5d3b766d1b0
+
+replace github.com/pawelgaczynski/giouring => ../giouring

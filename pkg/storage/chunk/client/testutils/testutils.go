@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -86,11 +87,23 @@ func CreateChunks(scfg config.SchemaConfig, startIndex, batchSize int, from mode
 	return keys, chunks, nil
 }
 
+// GenerateRandomString generates a random string of a given length from a specified charset.
+func GenerateRandomString(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 func DummyChunkFor(from, through model.Time, metric labels.Labels) chunk.Chunk {
+	alphanumeric := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 	cs := chunkenc.NewMemChunk(chunkenc.ChunkFormatV4, compression.GZIP, chunkenc.UnorderedWithStructuredMetadataHeadBlockFmt, 256*1024, 0)
 
 	for ts := from; ts <= through; ts = ts.Add(15 * time.Second) {
-		_, err := cs.Append(&logproto.Entry{Timestamp: ts.Time(), Line: fmt.Sprintf("line ts=%d", ts)})
+		randomStr := GenerateRandomString(100, alphanumeric)
+		_, err := cs.Append(&logproto.Entry{Timestamp: ts.Time(), Line: fmt.Sprintf("%s", randomStr)})
 		if err != nil {
 			panic(err)
 		}
@@ -104,6 +117,7 @@ func DummyChunkFor(from, through model.Time, metric labels.Labels) chunk.Chunk {
 		from,
 		through,
 	)
+
 	// Force checksum calculation.
 	err := chunk.Encode()
 	if err != nil {
