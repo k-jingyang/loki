@@ -44,7 +44,7 @@ func (f *fixture) Clients() (
 	}
 
 	chunkClient = client.NewClient(oClient, client.FSEncoder, config.SchemaConfig{})
-	// chunkClient = client.NewClientWithMaxParallel(oClient, client.FSEncoder, 1, config.SchemaConfig{})
+
 	tableClient, err = NewTableClient(f.dirname)
 	if err != nil {
 		return

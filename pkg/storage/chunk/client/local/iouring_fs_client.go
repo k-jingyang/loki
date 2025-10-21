@@ -21,20 +21,12 @@ var decodeContextPool = sync.Pool{
 	},
 }
 
-// Allocation is an expensive operation..
-var bufferPool = sync.Pool{
-	New: func() interface{} {
-		buf := make([]byte, 500000) // 500kb. TODO: Dynamically sized buffers
-		return buf
-	},
-}
-
 type IOUringChunkClient struct {
 	innerClient client.Client
 	ring        *giouring.Ring
 	schema      config.SchemaConfig
 	dirname     string
-	cqeMutex    sync.Mutex
+	bufferPool  sync.Pool
 }
 
 type ReadRequest struct {
@@ -44,7 +36,7 @@ type ReadRequest struct {
 	Size  uint32
 }
 
-func NewIOUringChunkClient(innerClient client.Client, dirname string, schema config.SchemaConfig) (*IOUringChunkClient, error) {
+func NewIOUringFSClient(innerClient client.Client, dirname string, schema config.SchemaConfig, bufSizeKB int) (*IOUringChunkClient, error) {
 	size := 256
 	ring, err := giouring.CreateRing(uint32(size), giouring.WithSQPolling(), giouring.WithSQThreadIdle(2*time.Second))
 	if err != nil {
@@ -56,6 +48,12 @@ func NewIOUringChunkClient(innerClient client.Client, dirname string, schema con
 		dirname:     dirname,
 		schema:      schema,
 		ring:        ring,
+		bufferPool: sync.Pool{
+			New: func() interface{} {
+				buf := make([]byte, bufSizeKB*1024)
+				return buf
+			},
+		},
 	}, nil
 
 }
@@ -158,7 +156,7 @@ func (c *IOUringChunkClient) makeReadReqs(readReqChan chan<- *ReadRequest, chunk
 		}
 
 		size := stats.Size()
-		buf := bufferPool.Get().([]byte)
+		buf := c.bufferPool.Get().([]byte)
 
 		readReqChan <- &ReadRequest{
 			Index: chunkIndex,
@@ -187,7 +185,7 @@ func (c *IOUringChunkClient) decodeWorker(chunks []chunk.Chunk, chunkBuffer [][]
 		if err != nil {
 			panic(err)
 		}
-		bufferPool.Put(buffer)
+		c.bufferPool.Put(buffer)
 		decodeContextPool.Put(decodeContext)
 		doneCh <- struct{}{}
 	}
