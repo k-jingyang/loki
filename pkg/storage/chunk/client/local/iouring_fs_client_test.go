@@ -3,6 +3,8 @@ package local
 import (
 	"context"
 	"math/rand"
+"os"
+	"runtime/pprof"
 	"testing"
 	"time"
 
@@ -22,7 +24,7 @@ type fileTest struct {
 var (
 	batchSize = 1
 
-	fileSizeTest []fileTest = []fileTest{
+	fileSizeTest_100 []fileTest = []fileTest{
 		{
 			name:          "235KB chunks 100 files",
 			chunkDuration: 12 * time.Hour,
@@ -59,8 +61,58 @@ var (
 			bufSizeKB:     1536,
 			chunksNum:     100,
 		},
+		{
+			name:          "1.65MB chunks 100 files",
+			chunkDuration: 84 * time.Hour,
+			bufSizeKB:     1792,
+			chunksNum:     100,
+		},
 	}
 
+	fileSizeTest_200 []fileTest = []fileTest{
+		{
+			name:          "235KB chunks 200 files",
+			chunkDuration: 12 * time.Hour,
+			bufSizeKB:     256,
+			chunksNum:     200,
+		},
+		{
+			name:          "470KB chunks 200 files",
+			chunkDuration: 24 * time.Hour,
+			bufSizeKB:     512,
+			chunksNum:     200,
+		},
+		{
+			name:          "700KB chunks 200 files",
+			chunkDuration: 36 * time.Hour,
+			bufSizeKB:     768,
+			chunksNum:     200,
+		},
+		{
+			name:          "900KB chunks 200 files",
+			chunkDuration: 48 * time.Hour,
+			bufSizeKB:     1024,
+			chunksNum:     200,
+		},
+		{
+			name:          "1.1MB chunks 200 files",
+			chunkDuration: 60 * time.Hour,
+			bufSizeKB:     1280,
+			chunksNum:     200,
+		},
+		{
+			name:          "1.40MB chunks 200 files",
+			chunkDuration: 72 * time.Hour,
+			bufSizeKB:     1536,
+			chunksNum:     200,
+		},
+		{
+			name:          "1.65MB chunks 200 files",
+			chunkDuration: 84 * time.Hour,
+			bufSizeKB:     1792,
+			chunksNum:     200,
+		},
+	}
 	fileCountTest []fileTest = []fileTest{
 		{
 			name:          "900KB chunks 50 files",
@@ -102,7 +154,15 @@ var (
 )
 
 func BenchmarkSyncReadChunkFileSizes(b *testing.B) {
-	for _, test := range fileSizeTest {
+	for _, test := range fileSizeTest_100 {
+		b.Run(test.name, func(b *testing.B) {
+			SyncReadChunk(b, test)
+		})
+	}
+}
+
+func BenchmarkSyncReadChunkFileSizes_200(b *testing.B) {
+	for _, test := range fileSizeTest_200 {
 		b.Run(test.name, func(b *testing.B) {
 			SyncReadChunk(b, test)
 		})
@@ -151,7 +211,15 @@ func SyncReadChunk(b *testing.B, test fileTest) {
 }
 
 func BenchmarkIOUringReadChunkFileSizes(b *testing.B) {
-	for _, test := range fileSizeTest {
+	for _, test := range fileSizeTest_100 {
+		b.Run(test.name, func(b *testing.B) {
+			IOUringReadChunk(b, test)
+		})
+	}
+}
+
+func BenchmarkIOUringReadChunkFileSizes_200(b *testing.B) {
+	for _, test := range fileSizeTest_200 {
 		b.Run(test.name, func(b *testing.B) {
 			IOUringReadChunk(b, test)
 		})
@@ -197,17 +265,17 @@ func IOUringReadChunk(b *testing.B, test fileTest) {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	rand.Shuffle(len(testChunks), func(i, j int) { testChunks[i], testChunks[j] = testChunks[j], testChunks[i] })
 
-	// // Profile
-	// f, err := os.Create("iouring.prof")
-	// if err != nil {
-	// 	b.Fatalf("could not create CPU profile file: %v", err)
-	// }
-	// defer f.Close()
+	// Profile
+	cpu, err := os.Create("iouring.prof")
+	if err != nil {
+		b.Fatalf("could not create CPU profile file: %v", err)
+	}
+	defer cpu.Close()
 
-	// if err := pprof.StartCPUProfile(f); err != nil {
-	// 	b.Fatalf("could not start CPU profile: %v", err)
-	// }
-	// defer pprof.StopCPUProfile()
+	if err := pprof.StartCPUProfile(cpu); err != nil {
+		b.Fatalf("could not start CPU profile: %v", err)
+	}
+	defer pprof.StopCPUProfile()
 
 	// Bench
 	for b.Loop() {
