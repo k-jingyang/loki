@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -15,6 +16,12 @@ import (
 	"github.com/grafana/loki/v3/pkg/storage/chunk/client/util"
 	"github.com/grafana/loki/v3/pkg/storage/config"
 )
+
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, 0, 1792*1024+bytes.MinRead) // 1792 is the upper bound needed
+	},
+}
 
 type ObjectAttributes struct {
 	Size int64
@@ -191,13 +198,14 @@ func (o *client) getChunk(ctx context.Context, decodeContext *chunk.DecodeContex
 
 	// adds bytes.MinRead to avoid allocations when the size is known.
 	// This is because ReadFrom reads bytes.MinRead by bytes.MinRead.
-	buf := bytes.NewBuffer(make([]byte, 0, size+bytes.MinRead))
+	rawBuf := bufPool.Get().([]byte)
+	buf := bytes.NewBuffer(rawBuf)
 	_, err = buf.ReadFrom(readCloser)
 	if err != nil {
 		return chunk.Chunk{}, errors.WithStack(err)
 	}
 
-	if err := c.Decode(decodeContext, buf.Bytes()); err != nil {
+	if err := c.Decode(decodeContext, buf.Bytes()[:size]); err != nil {
 		return chunk.Chunk{}, errors.WithStack(
 			fmt.Errorf(
 				"failed to decode chunk '%s' for tenant `%s`: %w",
@@ -207,6 +215,8 @@ func (o *client) getChunk(ctx context.Context, decodeContext *chunk.DecodeContex
 			),
 		)
 	}
+
+	bufPool.Put(rawBuf)
 	return c, nil
 }
 
